@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cadastro de Alunos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <style>
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Cadastro de Alunos</h1>
+      <table id="alunos-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Data de Nascimento</th>
+            <th>Sexo</th>
+            <th>Idade</th>
+            <th>AV1</th>
+            <th>AV2</th>
+            <th>Média</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for aluno in alunos %}
+            <tr data-id="{{ aluno.id }}">
+              <td>{{ aluno.nome }}</td>
+              <td>{{ aluno.cpf }}</td>
+              <td>{{ aluno.data_nascimento }}</td>
+              <td>{{ aluno.sexo }}</td>
+              <td>{{ aluno.idade }}</td>
+              <td>{{ aluno.av1 }}</td>
+              <td>{{ aluno.av2 }}</td>
+              <td>{{ aluno.media }}</td>
+              <td>
+                <form style="display: inline;">
+                  <button type="button" class="edit-button" data-cpf="{{ aluno.cpf }}">Editar</button>
+                </form>
+                <form action="/delete/{{ aluno.cpf }}" method="DELETE" style="display: inline;">
+                  <input type="hidden" name="_method" value="DELETE" />
+                  <button type="submit" class="delete-button">Excluir</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="fixed-action-btn">
+        <a class="btn-floating btn-large waves-effect waves-light red" id="add-aluno-button"><i class="material-icons">add</i></a>
+      </div>
+    </div>
+
+    <div id="cadastro-popup" class="modal">
+      <div class="modal-content">
+        <h4>Cadastro Aluno</h4>
+        <div class="row">
+          <form class="col s12" id="cadastro-form">
+            <div class="row">
+              <div class="input-field col s6">
+                <input id="nome" type="text" class="validate" />
+                <label for="nome">Nome Completo</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s6">
+                <input id="cpf" type="number" class="validate" />
+                <label for="cpf">CPF</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s12">
+                <input id="data-nascimento" type="text" class="datepicker" />
+                <label for="data-nascimento">Data de Nascimento:</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s12">
+                <select id="sexo">
+                  <option value="Indeterminado">Indeterminado</option>
+                  <option value="Feminino">Feminino</option>
+                  <option value="Masculino">Masculino</option>
+                </select>
+                <label>Sexo</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s6">
+                <input id="av1" type="number" class="validate" />
+                <label for="av1">AV1</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s6">
+                <input id="av2" type="number" class="validate" />
+                <label for="av2">AV2</label>
+              </div>
+            </div>
+            <div class="row">
+              <div class="input-field col s12">
+                <button class="btn waves-effect waves-light green" type="submit" id="cadastrar-button">Cadastrar</button>
+                <button class="btn waves-effect waves-light red" type="button" id="fechar-button">Fechar</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      $(document).ready(function () {
+        var editRowIndex = null // Índice da linha em edição
+        var dropdowns = document.querySelectorAll('select')
+        var dropdownOptions = {}
+        var dropdownInstances = M.FormSelect.init(dropdowns, dropdownOptions)
+      
+        var datepickers = document.querySelectorAll('.datepicker')
+        var datepickerOptions = {
+          autoClose: true,
+          format: 'dd/mm/yyyy',
+          yearRange: [1923, new Date().getFullYear()],
+          showClearBtn: true,
+          i18n: {
+            cancel: 'Cancelar',
+            clear: 'Limpar',
+            done: 'Ok',
+            months: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+            monthsShort: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+            weekdays: ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'],
+            weekdaysShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+            weekdaysAbbrev: ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+          }
+        }
+        var datepickers = document.querySelectorAll('.datepicker')
+        M.Datepicker.init(datepickers, datepickerOptions)
+      
+        // Inicializa o seletor de data
+        $('.datepicker').datepicker()
+      
+        // Inicializa o modal
+        $('#cadastro-popup').modal()
+      
+        // Abre o formulário de cadastro ao clicar no botão
+        $('#add-aluno-button').on('click', function () {
+          $('#cadastro-popup').modal('open')
+        })
+      
+        // Fecha o formulário de cadastro ao clicar em "Cancelar"
+        $('.modal-close').on('click', function () {
+          $('#cadastro-popup').modal('close')
+        })
+      
+        // Inicializa o modal
+        $('.modal').modal()
+      
+        // Manipulador de evento para o botão "Excluir"
+        $('.delete-button').on('click', function (event) {
+          event.preventDefault()
+          var form = $(this).closest('form')
+          var cpf = form.attr('action').split('/').pop()
+          $.ajax({
+            url: '/delete/' + cpf,
+            type: 'DELETE',
+            success: function (response) {
+              alert('Aluno excluído com sucesso!')
+              window.location.reload() // Atualiza a página
+            },
+            error: function (error) {
+              console.log(response)
+              alert('Ocorreu um erro ao excluir o aluno.')
+            }
+          })
+        })
+      })
+      
+      // Manipulador de evento para o botão "Cadastrar"
+      $('#cadastrar-button').on('click', function () {
+        // Verifica se o formulário é válido
+      
+        // Obtém os valores dos campos do formulário
+        var nome = $('#nome').val()
+        var cpf = $('#cpf').val()
+        var dataNascimento = $('#data-nascimento').val().split('/').reverse().join('-')
+        var sexo = $('#sexo').val()
+        var av1 = $('#av1').val()
+        var av2 = $('#av2').val()
+      
+        // Cria um objeto com os dados do aluno
+        var aluno = {
+          nome: nome,
+          cpf: cpf,
+          data_nascimento: dataNascimento,
+          sexo: sexo,
+          av1: av1,
+          av2: av2
+        }
+      
+        // Faz a requisição AJAX para cadastrar o aluno no servidor
+        $.ajax({
+          url: '/add', // Substitua pela URL correta para o cadastro no servidor
+          type: 'POST',
+          data: JSON.stringify(aluno),
+          contentType: 'application/json',
+          success: function (response) {
+            alert('Aluno cadastrado com sucesso!')
+            $('#cadastro-popup').modal('close')
+          },
+          error: function (error) {
+            console.log(response)
+            alert('Ocorreu um erro ao cadastrar o aluno.')
+          }
+        })
+      })
+      
+      $('.edit-button').on('click', function () {
+        var row = $(this).closest('tr')
+        var nome = row.find('td:nth-child(1)').text()
+        var cpf = row.find('td:nth-child(2)').text()
+        var dataNascimento = row.find('td:nth-child(3)').text()
+        var sexo = row.find('td:nth-child(4)').text()
+        var av1 = row.find('td:nth-child(6)').text()
+        var av2 = row.find('td:nth-child(7)').text()
+      
+        // Preencher os campos do formulário com os dados da linha da tabela
+        $('#nome').val(nome)
+        $('#cpf').val(cpf)
+        $('#data-nascimento').val(dataNascimento)
+        $('#sexo').val(sexo)
+        $('#av1').val(av1)
+        $('#av2').val(av2)
+      
+        // Trocar o texto e o ID do botão do modal
+        $('#cadastrar-button').text('Editar').attr('id', 'editar-button')
+      
+        // Abrir o formulário de edição
+        $('#cadastro-popup').modal('open')
+      })
+      
+      $(document).on('click', '#editar-button', function () {
+        // Obter os dados atualizados do formulário
+        var nome = $('#nome').val()
+        var cpf = $('#cpf').val()
+        var dataNascimento = $('#data-nascimento').val().split('/').reverse().join('-')
+        var sexo = $('#sexo').val()
+        var av1 = $('#av1').val()
+        var av2 = $('#av2').val()
+      
+        // Criar um objeto com os dados atualizados
+        var alunoAtualizado = {
+          nome: nome,
+          cpf: cpf,
+          data_nascimento: dataNascimento,
+          sexo: sexo,
+          av1: av1,
+          av2: av2
+        }
+      
+        // Fazer a requisição AJAX para o endpoint de edição
+        $.ajax({
+          url: '/edit/' + cpf, // Substitua pela URL correta para o seu endpoint de edição
+          type: 'PUT', // Ou o método HTTP correto para a edição
+          data: JSON.stringify(alunoAtualizado),
+          contentType: 'application/json',
+          success: function (response) {
+            alert('Aluno editado com sucesso!')
+            // Realizar outras ações ou atualizações necessárias na página
+            $('#cadastro-popup').modal('close')
+            window.location.reload() // Atualiza a página
+          },
+          error: function (error) {
+            console.log(error)
+            alert('Ocorreu um erro ao editar o aluno.')
+          }
+        })
+      })
+    </script>
+  </body>
+</html>
